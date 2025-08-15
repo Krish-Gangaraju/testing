@@ -11,7 +11,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      # ODBC driver + headers for pyodbc
+      # If you use SQL Server via pyodbc, you need the driver & headers
       - name: Install ODBC driver
         run: |
           sudo apt-get update
@@ -22,19 +22,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create .env from SQL_PASS secret
-        run: |
-          printf "SQL_PASS=%s\n" "$SQL_PASS" > .env
-        env:
-          SQL_PASS: ${{ secrets.SQL_PASS }}
-
-      - name: Sanity-check .env (masked)
-        run: |
-          test -f .env
-          grep -q '^SQL_PASS=' .env
-          echo ".env present and SQL_PASS is set (masked)."
-          pwd && ls -la
-
+      # Run your script with SQL_PASS injected as an env var
       - name: Run app
+        env:
+          SQL_PASS: ${{ secrets.SQL_PASS }}   # must exist in Settings > Secrets > Actions
         run: |
-          python app.py
+          python r2r3-application.py
