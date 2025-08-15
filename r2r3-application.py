@@ -330,7 +330,7 @@ def align_to_table_schema(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str], Li
 def make_engine():
     load_dotenv()
     client = "krishgangaraju@riskanalysis-server"
-    secret = os.getenv("SQL_PASS")
+    secret = st.secrets.get("SQL_PASS") or os.getenv("SQL_PASS")
     if not client or not secret:
         raise RuntimeError("Missing SQL_USER or SQL_PASS in environment (.env)")
 
@@ -515,4 +515,5 @@ if push:
 
 if st.session_state.push_done:
     st.caption("Done. You can upload another file if needed.")
+
 
