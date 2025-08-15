@@ -326,30 +326,23 @@ def align_to_table_schema(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str], Li
     return df, missing, extra
 
 
-# ── DB ENGINE ────────────────────────────────────────────────────────
 def make_engine():
-    load_dotenv()
-    client = "krishgangaraju@riskanalysis-server"
+    load_dotenv()  # lets local runs use a .env if you have one
+    client = "krishgangaraju@riskanalysis-server"  # keep your current login format if that’s what works
     secret = st.secrets.get("SQL_PASS") or os.getenv("SQL_PASS")
-    if not client or not secret:
-        raise RuntimeError("Missing SQL_USER or SQL_PASS in environment (.env)")
 
-    conn_params = {
-        "Driver": f"{{{DRIVER_NAME}}}",
-        "Server": SQL_SERVER,
-        "Database": SQL_DB,
-        "Encrypt": "yes",
-        "TrustServerCertificate": "no",
-        "UID": client,
-        "PWD": secret,
-        "Connect Timeout": "30",
-    }
-    conn_str = ";".join(f"{k}={v}" for k, v in conn_params.items())
-    return create_engine(
-        "mssql+pyodbc:///?odbc_connect=" + urllib.parse.quote_plus(conn_str),
-        fast_executemany=True,
-        pool_pre_ping=True,
-    )
+    if not client or not secret:
+        raise RuntimeError("Missing SQL_PASS in Streamlit secrets or environment")
+
+    # URL-encode user/pass in case they have special chars
+    user_q = urllib.parse.quote_plus(client)
+    pass_q = urllib.parse.quote_plus(secret)
+
+    # pymssql connection string (works on Streamlit Cloud)
+    url = f"mssql+pymssql://{user_q}:{pass_q}@{SQL_SERVER}:1433/{SQL_DB}"
+
+    # NOTE: pyodbc-only args like fast_executemany don’t apply here
+    return create_engine(url, pool_pre_ping=True)
 
 
 # ── SCHEMA MIGRATOR ──────────────────────────────────────────────────
@@ -515,5 +508,6 @@ if push:
 
 if st.session_state.push_done:
     st.caption("Done. You can upload another file if needed.")
+
 
 
