@@ -6,13 +6,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt || true
+
+      # ODBC driver + headers for pyodbc
+      - name: Install ODBC driver
+        run: |
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Create .env from SQL_PASS secret
         run: |
           printf "SQL_PASS=%s\n" "$SQL_PASS" > .env
         env:
           SQL_PASS: ${{ secrets.SQL_PASS }}
-      - run: python app.py
+
+      - name: Sanity-check .env (masked)
+        run: |
+          test -f .env
+          grep -q '^SQL_PASS=' .env
+          echo ".env present and SQL_PASS is set (masked)."
+          pwd && ls -la
+
+      - name: Run app
+        run: |
+          python app.py
